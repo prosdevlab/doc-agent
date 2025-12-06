@@ -1,22 +1,22 @@
+import type { Config } from '@doc-agent/core';
+import { extractDocument } from '@doc-agent/extract';
 import { Server } from '@modelcontextprotocol/sdk/server';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
+  type CallToolRequest,
   CallToolRequestSchema,
   ListToolsRequestSchema,
-  CallToolRequest
 } from '@modelcontextprotocol/sdk/types.js';
-import { extractDocument } from '@doc-agent/extract';
-import type { Config } from '@doc-agent/core';
 
 const server = new Server(
   {
     name: 'doc-agent',
-    version: '0.1.0'
+    version: '0.1.0',
   },
   {
     capabilities: {
-      tools: {}
-    }
+      tools: {},
+    },
   }
 );
 
@@ -32,17 +32,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           properties: {
             filepath: {
               type: 'string',
-              description: 'Path to the document file'
+              description: 'Path to the document file',
             },
             provider: {
               type: 'string',
               enum: ['gemini', 'openai', 'ollama'],
               description: 'AI provider to use',
-              default: 'gemini'
-            }
+              default: 'gemini',
+            },
           },
-          required: ['filepath']
-        }
+          required: ['filepath'],
+        },
       },
       {
         name: 'search_documents',
@@ -52,18 +52,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           properties: {
             query: {
               type: 'string',
-              description: 'Search query in natural language'
+              description: 'Search query in natural language',
             },
             limit: {
               type: 'number',
               description: 'Maximum number of results',
-              default: 10
-            }
+              default: 10,
+            },
           },
-          required: ['query']
-        }
-      }
-    ]
+          required: ['query'],
+        },
+      },
+    ],
   };
 });
 
@@ -74,48 +74,48 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
       filepath: string;
       provider?: string;
     };
-    
+
     const config: Config = {
       aiProvider: provider as 'gemini' | 'openai' | 'ollama',
       geminiApiKey: process.env.GEMINI_API_KEY,
-      openaiApiKey: process.env.OPENAI_API_KEY
+      openaiApiKey: process.env.OPENAI_API_KEY,
     };
-    
+
     try {
       const result = await extractDocument(filepath, config);
-      
+
       return {
         content: [
           {
             type: 'text',
-            text: JSON.stringify(result, null, 2)
-          }
-        ]
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
       };
     } catch (error) {
       return {
         content: [
           {
             type: 'text',
-            text: `Error: ${(error as Error).message}`
-          }
+            text: `Error: ${(error as Error).message}`,
+          },
         ],
-        isError: true
+        isError: true,
       };
     }
   }
-  
+
   if (request.params.name === 'search_documents') {
     return {
       content: [
         {
           type: 'text',
-          text: 'Search functionality not yet implemented'
-        }
-      ]
+          text: 'Search functionality not yet implemented',
+        },
+      ],
     };
   }
-  
+
   throw new Error(`Unknown tool: ${request.params.name}`);
 });
 

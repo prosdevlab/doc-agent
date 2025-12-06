@@ -1,11 +1,2 @@
-# Get staged files
-files=$(git diff --cached --name-only --diff-filter=ACMR "*.ts" "*.tsx" "*.js" "*.jsx" | xargs)
-
-if [ -n "$files" ]; then
-  echo "Running Biome on staged files: $files"
-  pnpm lint-staged $files
-  git add $files
-fi
-
-# Run TypeScript type check
+pnpm lint-staged
 pnpm typecheck

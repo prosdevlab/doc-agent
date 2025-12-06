@@ -31,3 +31,26 @@ export interface Config {
   ollamaModel?: string;
   dbPath?: string;
 }
+
+export interface CoreServiceConfig {
+  apiKey: string;
+  debug: boolean;
+}
+
+export class CoreService {
+  private apiKey: string;
+  private debug: boolean;
+
+  constructor(config: CoreServiceConfig) {
+    this.apiKey = config.apiKey;
+    this.debug = config.debug;
+  }
+
+  getApiKey(): string {
+    return this.apiKey;
+  }
+}
+
+export function createCoreService(config: CoreServiceConfig): CoreService {
+  return new CoreService(config);
+}

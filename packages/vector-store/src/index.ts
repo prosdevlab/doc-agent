@@ -1,10 +1,9 @@
 import type { Config, DocumentData, SearchResult } from '@doc-agent/core';
 
 export class VectorStore {
-  private config: Config;
-
-  constructor(config: Config) {
-    this.config = config;
+  // biome-ignore lint/complexity/noUselessConstructor: needed for API compat
+  constructor(_config: Config) {
+    // this.config = config;
   }
 
   async indexDocument(document: DocumentData): Promise<void> {

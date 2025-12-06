@@ -1,11 +1,11 @@
 #!/usr/bin/env node
-import { Command } from 'commander';
-import ora from 'ora';
-import chalk from 'chalk';
-import { extractDocument } from '@doc-agent/extract';
-import type { Config } from '@doc-agent/core';
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
+import type { Config } from '@doc-agent/core';
+import { extractDocument } from '@doc-agent/extract';
+import chalk from 'chalk';
+import { Command } from 'commander';
+import ora from 'ora';
 
 const execAsync = promisify(exec);
 
@@ -24,8 +24,8 @@ async function ensureOllamaModel(model: string) {
     if (!response.ok) {
       throw new Error('Ollama is not running. Please start Ollama first.');
     }
-    const data = await response.json() as { models: { name: string }[] };
-    const modelExists = data.models.some(m => m.name.includes(model));
+    const data = (await response.json()) as { models: { name: string }[] };
+    const modelExists = data.models.some((m) => m.name.includes(model));
 
     if (!modelExists) {
       spinner.text = `Pulling Ollama model: ${model} (this may take a while)...`;
@@ -46,7 +46,11 @@ program
   .command('extract <file>')
   .description('Extract structured data from a document')
   .option('-p, --provider <provider>', 'AI provider (gemini|openai|ollama)', 'ollama')
-  .option('-m, --model <model>', 'Model to use (default: llama3.2-vision for ollama)', 'llama3.2-vision')
+  .option(
+    '-m, --model <model>',
+    'Model to use (default: llama3.2-vision for ollama)',
+    'llama3.2-vision'
+  )
   .action(async (file: string, options) => {
     try {
       if (options.provider === 'ollama') {
@@ -54,23 +58,23 @@ program
       }
 
       const spinner = ora('Extracting document data...').start();
-      
+
       const config: Config = {
         aiProvider: options.provider,
         geminiApiKey: process.env.GEMINI_API_KEY,
         openaiApiKey: process.env.OPENAI_API_KEY,
-        ollamaModel: options.model
+        ollamaModel: options.model,
       };
-      
+
       const result = await extractDocument(file, config);
-      
+
       spinner.succeed(chalk.green('Extraction complete!'));
       console.log(JSON.stringify(result, null, 2));
     } catch (error) {
       // Only fail the spinner if it's running (ensureOllamaModel might have failed already)
       if (ora().isSpinning) {
-         // This check is tricky because ora() creates a new instance. 
-         // We'll just log the error.
+        // This check is tricky because ora() creates a new instance.
+        // We'll just log the error.
       }
       console.error(chalk.red('\nExtraction failed:'));
       console.error((error as Error).message);
@@ -95,7 +99,7 @@ program
   });
 
 program
-   .command('mcp')
+  .command('mcp')
   .description('Start MCP server')
   .action(async () => {
     const { startMCPServer } = await import('./mcp/server.js');

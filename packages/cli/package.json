@@ -18,16 +18,16 @@
     "@doc-agent/core": "workspace:*",
     "@doc-agent/extract": "workspace:*",
     "@doc-agent/vector-store": "workspace:*",
-    "@modelcontextprotocol/sdk": "^1.0.4",
-    "@google/generative-ai": "^0.21.0",
-    "vectordb": "^0.9.0",
-    "commander": "^12.1.0",
-    "ora": "^8.1.1",
-    "chalk": "^5.3.0"
+    "@google/generative-ai": "^0.24.1",
+    "@modelcontextprotocol/sdk": "^1.24.3",
+    "chalk": "^5.6.2",
+    "commander": "^14.0.2",
+    "ora": "^9.0.0",
+    "vectordb": "^0.21.2"
   },
   "devDependencies": {
-    "@types/node": "^20.17.9",
-    "typescript": "^5.7.2",
-    "tsx": "^4.19.2"
+    "@types/node": "^24.10.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
   }
 }
