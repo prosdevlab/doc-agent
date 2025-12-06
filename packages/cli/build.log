@@ -1,0 +1,11 @@
+
+> @doc-agent/core@0.1.0 build /Users/prosseng/workspace/prosdev/doc-agent/packages/doc-agent
+> tsc
+
+src/cli.ts(5,33): error TS2307: Cannot find module '../core/extract.js' or its corresponding type declarations.
+src/cli.ts(6,29): error TS2307: Cannot find module '../types/index.js' or its corresponding type declarations.
+src/cli.ts(60,45): error TS2307: Cannot find module '../mcp/server.js' or its corresponding type declarations.
+src/mcp/server.ts(1,18): error TS2305: Module '"@modelcontextprotocol/sdk/server"' has no exported member 'StdioServerTransport'.
+src/mcp/server.ts(1,40): error TS2305: Module '"@modelcontextprotocol/sdk/server"' has no exported member 'CallToolRequestSchema'.
+src/mcp/server.ts(1,63): error TS2305: Module '"@modelcontextprotocol/sdk/server"' has no exported member 'ListToolsRequestSchema'.
+ ELIFECYCLE  Command failed with exit code 2.

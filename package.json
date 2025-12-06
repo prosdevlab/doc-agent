@@ -1,0 +1,38 @@
+{
+  "name": "doc-agent",
+  "version": "0.1.0",
+  "description": "Document extraction and semantic search CLI with MCP integration",
+  "type": "module",
+  "private": false,
+  "packageManager": "pnpm@9.15.0",
+  "bin": {
+    "doc": "./packages/cli/dist/cli.js"
+  },
+  "exports": {
+    ".": "./packages/cli/dist/index.js",
+    "./mcp": "./packages/cli/dist/mcp/server.js"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm --filter @doc-agent/cli dev",
+    "mcp": "pnpm --filter @doc-agent/cli mcp"
+  },
+  "keywords": [
+    "document",
+    "ocr",
+    "mcp",
+    "ai",
+    "vector-search",
+    "invoice",
+    "extraction"
+  ],
+  "author": "",
+  "license": "MIT",
+  "workspaces": [
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@tsconfig/node-lts": "^24.0.0",
+    "typescript": "^5.9.3"
+  }
+}
