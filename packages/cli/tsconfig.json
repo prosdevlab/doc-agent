@@ -5,6 +5,9 @@
     "rootDir": "./src"
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"],
-  "references": [{ "path": "../core" }, { "path": "../extract" }, { "path": "../vector-store" }]
+  "exclude": ["node_modules", "dist", "**/*.test.ts"],
+  "references": [{ "path": "../core" }, { "path": "../extract" }, { "path": "../vector-store" }],
+  "ts-node": {
+    "esm": true
+  }
 }

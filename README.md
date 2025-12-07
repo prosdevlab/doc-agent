@@ -25,7 +25,13 @@ npm install -g doc-agent
 doc extract invoice.pdf
 ```
 
-**With specific provider:**
+**With Ollama (local, privacy-first):**
+```bash
+# Ensure Ollama is running
+doc extract invoice.pdf --provider ollama
+```
+
+**With Gemini (cloud):**
 ```bash
 export GEMINI_API_KEY=your_key_here
 doc extract invoice.pdf --provider gemini

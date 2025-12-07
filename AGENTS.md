@@ -26,10 +26,11 @@ The project is organized as a monorepo using pnpm workspaces:
 
 ```
 packages/
-├── cli/           # CLI entry point and MCP server implementation
-├── core/          # Shared types, interfaces, and core logic
-├── extract/       # Document extraction logic (AI integration)
-└── vector-store/  # Vector database interaction and semantic search
+├── cli/           # CLI entry point and MCP server
+├── core/          # Shared types and interfaces
+├── extract/       # Document extraction (Gemini, Ollama)
+├── storage/       # SQLite persistence (Drizzle ORM)
+└── vector-store/  # Vector database for semantic search
 ```
 
 ## Setup Commands

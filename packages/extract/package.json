@@ -13,8 +13,8 @@
     }
   },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
+    "build": "tsup",
+    "dev": "tsup --watch",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",
     "lint": "biome lint ./src",
@@ -24,7 +24,8 @@
   },
   "dependencies": {
     "@doc-agent/core": "workspace:*",
-    "@google/generative-ai": "^0.24.1"
+    "@google/generative-ai": "^0.24.1",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",

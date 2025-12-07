@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createDb, ensureDirectoryExists, getDbPath, runMigrations } from '../db.js';
+import { createDb, ensureDirectoryExists, getDbPath, runMigrations } from '../db';
 
 // Mock the migrator module
 vi.mock('drizzle-orm/better-sqlite3/migrator', () => ({

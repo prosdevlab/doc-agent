@@ -10,7 +10,7 @@
     "doc-agent": "./dist/cli.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsup",
     "dev": "tsx src/cli.ts",
     "mcp": "tsx src/mcp/server.ts"
   },
@@ -23,7 +23,8 @@
     "chalk": "^5.6.2",
     "commander": "^14.0.2",
     "ora": "^9.0.0",
-    "vectordb": "^0.21.2"
+    "vectordb": "^0.21.2",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
