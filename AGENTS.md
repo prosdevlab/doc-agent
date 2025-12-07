@@ -105,6 +105,38 @@ The project exposes an MCP server (`packages/cli/src/mcp/server.ts`) that allows
 -   **Linting/Formatting**: Run `pnpm lint` and `pnpm format` (using Biome).
 -   **Commits**: Follow Conventional Commits (e.g., `feat(cli): add new command`).
 
+## Security & Privacy
+
+This is a **privacy-first** tool. All data stays local. When implementing features that touch user data, follow these principles:
+
+### PII Considerations
+
+Before storing or logging any data, ask:
+1. **Does this contain PII?** (usernames, paths, emails, IPs)
+2. **Is storage necessary?** Can we derive what we need without storing raw PII?
+3. **What's the blast radius?** If this data leaks, what's exposed?
+
+**Preferred patterns:**
+| Instead of | Use |
+|------------|-----|
+| `/Users/john/docs/invoice.pdf` | Hash of path + filename only |
+| Full error stack with paths | Sanitized error messages |
+| Logging request bodies | Logging request metadata only |
+
+### Data Locality
+
+- All extracted document data stays in local SQLite
+- No telemetry, no cloud sync, no external API calls (except AI providers)
+- User controls their data completely
+
+### AI Provider Data
+
+When sending data to AI providers:
+- Gemini/OpenAI: Data leaves machine (user accepts this by providing API key)
+- Ollama: Data stays local (default, privacy-first option)
+
+Document these trade-offs clearly in user-facing docs.
+
 ## Adding New Features
 
 1.  **New AI Provider**: Update `packages/extract/src/index.ts` to implement the provider logic.

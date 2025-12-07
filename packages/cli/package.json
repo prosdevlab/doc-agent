@@ -17,6 +17,7 @@
   "dependencies": {
     "@doc-agent/core": "workspace:*",
     "@doc-agent/extract": "workspace:*",
+    "@doc-agent/storage": "workspace:*",
     "@doc-agent/vector-store": "workspace:*",
     "@google/generative-ai": "^0.24.1",
     "@modelcontextprotocol/sdk": "^1.24.3",

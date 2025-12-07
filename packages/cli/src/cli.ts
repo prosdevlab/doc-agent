@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 import { exec } from 'node:child_process';
+import { resolve } from 'node:path';
 import { promisify } from 'node:util';
 import type { Config } from '@doc-agent/core';
 import { extractDocument } from '@doc-agent/extract';
+import { storage } from '@doc-agent/storage';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
@@ -51,6 +53,7 @@ program
     'Model to use (default: llama3.2-vision for ollama)',
     'llama3.2-vision'
   )
+  .option('-d, --dry-run', 'Print JSON only, do not save to database', false)
   .action(async (file: string, options) => {
     try {
       if (options.provider === 'ollama') {
@@ -68,14 +71,16 @@ program
 
       const result = await extractDocument(file, config);
 
-      spinner.succeed(chalk.green('Extraction complete!'));
+      if (options.dryRun) {
+        spinner.succeed(chalk.green('Extraction complete (dry run)'));
+      } else {
+        const absolutePath = resolve(file);
+        await storage.saveDocument(result, absolutePath);
+        spinner.succeed(chalk.green(`Saved: ${result.filename} (ID: ${result.id})`));
+      }
+
       console.log(JSON.stringify(result, null, 2));
     } catch (error) {
-      // Only fail the spinner if it's running (ensureOllamaModel might have failed already)
-      if (ora().isSpinning) {
-        // This check is tricky because ora() creates a new instance.
-        // We'll just log the error.
-      }
       console.error(chalk.red('\nExtraction failed:'));
       console.error((error as Error).message);
       process.exit(1);

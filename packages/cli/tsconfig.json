@@ -6,7 +6,12 @@
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "**/*.test.ts"],
-  "references": [{ "path": "../core" }, { "path": "../extract" }, { "path": "../vector-store" }],
+  "references": [
+    { "path": "../core" },
+    { "path": "../extract" },
+    { "path": "../storage" },
+    { "path": "../vector-store" }
+  ],
   "ts-node": {
     "esm": true
   }

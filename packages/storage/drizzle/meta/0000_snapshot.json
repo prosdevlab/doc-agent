@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "6eba05ff-3086-4f83-bc86-506b17db1c03",
+  "id": "b3921c83-f822-4238-92be-3cba302553fe",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "documents": {
@@ -14,15 +14,22 @@
           "notNull": true,
           "autoincrement": false
         },
-        "path": {
-          "name": "path",
+        "path_hash": {
+          "name": "path_hash",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "hash": {
-          "name": "hash",
+        "filename": {
+          "name": "filename",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "content_hash": {
+          "name": "content_hash",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -49,10 +56,16 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'\"2025-12-07T11:19:23.284Z\"'"
+          "default": "'\"2025-12-07T19:46:45.333Z\"'"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "documents_path_hash_unique": {
+          "name": "documents_path_hash_unique",
+          "columns": ["path_hash"],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
