@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+import { basename, resolve } from 'node:path';
 import type { DocumentData } from '@doc-agent/core';
 import { eq } from 'drizzle-orm';
 import { createDb, type DbClient } from './db';
@@ -9,6 +11,14 @@ export { createDb, type DbClient, getDbPath } from './db';
 // Re-export schema types
 export { type Document, documents, type NewDocument } from './schema';
 
+/**
+ * Compute SHA256 hash of a path for PII-safe storage
+ */
+export function computePathHash(filePath: string): string {
+  const absolutePath = resolve(filePath);
+  return createHash('sha256').update(absolutePath).digest('hex');
+}
+
 export class DocumentRepository {
   private db: DbClient;
 
@@ -17,23 +27,27 @@ export class DocumentRepository {
   }
 
   async saveDocument(docData: DocumentData, filePath: string): Promise<void> {
+    const pathHash = computePathHash(filePath);
+    const filename = basename(filePath);
+
     const newDoc: NewDocument = {
       id: docData.id,
-      path: filePath,
+      pathHash,
+      filename,
       status: 'pending',
       data: docData,
       createdAt: new Date(),
     };
 
-    // Upsert logic: if id exists, update data
+    // Upsert logic: if same file path, update existing record
     await this.db
       .insert(documents)
       .values(newDoc)
       .onConflictDoUpdate({
-        target: documents.id,
+        target: documents.pathHash,
         set: {
+          id: docData.id,
           data: docData,
-          path: filePath,
           status: 'pending', // Reset status on update so it gets re-indexed
         },
       });
@@ -52,4 +66,22 @@ export class DocumentRepository {
   }
 }
 
-export const storage = new DocumentRepository();
+// Lazy singleton - only initializes when first accessed
+let _storage: DocumentRepository | null = null;
+
+export function getStorage(): DocumentRepository {
+  if (!_storage) {
+    _storage = new DocumentRepository();
+  }
+  return _storage;
+}
+
+// Convenience alias for simple usage
+export const storage = {
+  saveDocument: (...args: Parameters<DocumentRepository['saveDocument']>) =>
+    getStorage().saveDocument(...args),
+  getDocument: (...args: Parameters<DocumentRepository['getDocument']>) =>
+    getStorage().getDocument(...args),
+  listDocuments: (...args: Parameters<DocumentRepository['listDocuments']>) =>
+    getStorage().listDocuments(...args),
+};

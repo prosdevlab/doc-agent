@@ -41,6 +41,9 @@ importers:
       '@doc-agent/extract':
         specifier: workspace:*
         version: link:../extract
+      '@doc-agent/storage':
+        specifier: workspace:*
+        version: link:../storage
       '@doc-agent/vector-store':
         specifier: workspace:*
         version: link:../vector-store

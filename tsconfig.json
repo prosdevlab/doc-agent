@@ -17,6 +17,8 @@
       "@doc-agent/core/*": ["packages/core/src/*"],
       "@doc-agent/extract": ["packages/extract/src"],
       "@doc-agent/extract/*": ["packages/extract/src/*"],
+      "@doc-agent/storage": ["packages/storage/src"],
+      "@doc-agent/storage/*": ["packages/storage/src/*"],
       "@doc-agent/vector-store": ["packages/vector-store/src"],
       "@doc-agent/vector-store/*": ["packages/vector-store/src/*"]
     }

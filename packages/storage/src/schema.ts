@@ -3,8 +3,9 @@ import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 export const documents = sqliteTable('documents', {
   id: text('id').primaryKey(),
-  path: text('path').notNull(),
-  hash: text('hash'),
+  pathHash: text('path_hash').notNull().unique(),
+  filename: text('filename').notNull(),
+  contentHash: text('content_hash'),
   status: text('status', { enum: ['pending', 'indexed', 'failed'] })
     .notNull()
     .default('pending'),
