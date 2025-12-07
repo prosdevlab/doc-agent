@@ -22,7 +22,7 @@ const DocumentDataSchema = z.object({
 });
 
 // Helper to detect MIME type from file extension
-function getMimeType(filePath: string): string {
+export function getMimeType(filePath: string): string {
   const ext = extname(filePath).toLowerCase();
   const mimeTypes: Record<string, string> = {
     '.pdf': 'application/pdf',

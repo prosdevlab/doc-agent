@@ -1,7 +1,13 @@
 import type { DocumentData } from '@doc-agent/core';
 import { eq } from 'drizzle-orm';
-import { createDb, type DbClient } from './db.js';
-import { documents, type NewDocument } from './schema.js';
+import { createDb, type DbClient } from './db';
+import { documents, type NewDocument } from './schema';
+
+// Re-export db utilities
+export { createDb, type DbClient, getDbPath } from './db';
+
+// Re-export schema types
+export { type Document, documents, type NewDocument } from './schema';
 
 export class DocumentRepository {
   private db: DbClient;

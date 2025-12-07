@@ -1,7 +1,7 @@
 import type { DocumentData } from '@doc-agent/core';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createDb } from '../db.js';
-import { DocumentRepository } from '../index.js';
+import { createDb } from '../db';
+import { DocumentRepository } from '../index';
 
 describe('DocumentRepository', () => {
   let repo: DocumentRepository;

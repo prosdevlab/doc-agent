@@ -1,6 +1,6 @@
 import type { Config } from '@doc-agent/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { extractDocument } from '../index.js';
+import { extractDocument } from '../index';
 
 // Mock fetch globally
 const mockFetch = vi.fn();
@@ -192,6 +192,104 @@ describe('Ollama Extraction', () => {
 
     const callBody = JSON.parse(mockFetch.mock.calls[0][1].body as string);
     expect(callBody.model).toBe('llama3.2-vision'); // Default model
+
+    fs.unlinkSync(testFile);
+  });
+
+  it('should not retry on non-Zod errors', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      text: async () => 'Internal Server Error',
+    });
+
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const os = await import('node:os');
+    const tmpDir = os.tmpdir();
+    const testFile = path.join(tmpDir, 'test-no-retry.pdf');
+    fs.writeFileSync(testFile, Buffer.from('test pdf content'));
+
+    const config: Config = {
+      aiProvider: 'ollama',
+      ollamaModel: 'llama3.2-vision',
+    };
+
+    await expect(extractDocument(testFile, config)).rejects.toThrow('Ollama API error');
+
+    // Should not retry on API errors
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+
+    fs.unlinkSync(testFile);
+  });
+
+  it('should handle different image MIME types', async () => {
+    const mockResponse = {
+      response: JSON.stringify({
+        type: 'receipt',
+        vendor: 'Store',
+      }),
+    };
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockResponse,
+    });
+
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const os = await import('node:os');
+    const tmpDir = os.tmpdir();
+    const testFile = path.join(tmpDir, 'receipt.png');
+    fs.writeFileSync(testFile, Buffer.from('test image content'));
+
+    const config: Config = {
+      aiProvider: 'ollama',
+      ollamaModel: 'llama3.2-vision',
+    };
+
+    await extractDocument(testFile, config);
+
+    const callBody = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    expect(callBody.prompt).toContain('image'); // Should detect image type
+
+    fs.unlinkSync(testFile);
+  });
+
+  it('should handle retry exhaustion (Zod error persists)', async () => {
+    const invalidResponse = {
+      response: JSON.stringify({
+        type: 'invalid_type', // Invalid type
+      }),
+    };
+
+    // Both calls return invalid data
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => invalidResponse,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => invalidResponse,
+      });
+
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const os = await import('node:os');
+    const tmpDir = os.tmpdir();
+    const testFile = path.join(tmpDir, 'test-retry-exhausted.pdf');
+    fs.writeFileSync(testFile, Buffer.from('test pdf content'));
+
+    const config: Config = {
+      aiProvider: 'ollama',
+      ollamaModel: 'llama3.2-vision',
+    };
+
+    await expect(extractDocument(testFile, config)).rejects.toThrow();
+
+    // Should retry once, then fail
+    expect(mockFetch).toHaveBeenCalledTimes(2);
 
     fs.unlinkSync(testFile);
   });
