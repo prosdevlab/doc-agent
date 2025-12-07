@@ -4,7 +4,57 @@ Standard workflow for implementing features in doc-agent.
 
 ## The Drill™
 
-### 1. Find Next Work (Dogfooding! 🐕🍽️)
+### 1. Ticket Creation (Required)
+
+Before writing any code, ensure a ticket exists for the work.
+
+-   **Small Changes**: A simple Issue is sufficient.
+-   **Large Features**: Create an **Epic** and break it down into **Implementation Tasks**.
+-   **No Ticket?**: Create one using the templates below.
+
+#### Epic Ticket Template
+```markdown
+# Epic: [Name]
+
+## 🎯 Overview
+High-level goal and key insights. "Why are we doing this?"
+
+## 🏗️ Architecture
+Core components and user flow.
+
+## 📋 Sub-Issues
+Breakdown of work into implementation tasks.
+- Task 1: Foundation
+- Task 2: Feature
+- Task 3: Integration
+
+*(Note: Use `scripts/gh-issue-add-subs.sh` to link child tasks to the Epic)*
+
+## ✅ Success Criteria
+- [ ] Checklist of deliverables
+```
+
+#### Implementation Ticket Template
+```markdown
+## Title: [Task/Feature] Name
+
+**Context**
+Why is this specific piece needed?
+
+**Architecture Decisions**
+- Package: e.g., `packages/storage`
+- Tech: e.g., `better-sqlite3`
+- Patterns: e.g., Repository Pattern, Lazy Init
+
+**Requirements**
+- [ ] Requirement 1
+- [ ] Requirement 2
+
+**References**
+- Epic: #1
+```
+
+### 2. Find Next Work (Dogfooding! 🐕🍽️)
 
 ```bash
 # Update main branch
@@ -15,7 +65,7 @@ git pull origin main
 # (Coming soon: doc-agent issue search)
 ```
 
-### 2. Start New Feature
+### 3. Start New Feature
 
 ```bash
 # Create feature branch (use feat/, fix/, docs/, etc.)
@@ -25,7 +75,7 @@ git checkout -b feat/feature-name
 # Done via todo_write tool
 ```
 
-### 3. Planning Phase
+### 4. Planning Phase
 
 ```bash
 # Read the issue requirements
@@ -41,7 +91,7 @@ git checkout -b feat/feature-name
 - [ ] Create README if new module
 - [ ] Update related documentation
 
-### 4. Implementation Phase
+### 5. Implementation Phase
 
 ```bash
 # Design interfaces first (in comments or types)
@@ -49,7 +99,7 @@ git checkout -b feat/feature-name
 # Document with examples as you go
 ```
 
-### 5. Quality Checks
+### 6. Quality Checks
 
 ```bash
 # Build all packages
@@ -77,7 +127,7 @@ pnpm typecheck
 - ✅ No TypeScript errors
 - ✅ Documentation with examples
 
-### 6. Commit & PR
+### 7. Commit & PR
 
 ```bash
 # Stage all changes
@@ -137,6 +187,7 @@ Issue: #<number>
 - `cli`: Command-line interface
 - `core`: Core functionality
 - `extract`: Extraction logic
+- `storage`: Database & Persistence
 - `vector`: Vector storage
 - `mcp`: MCP Server integration
 
@@ -176,4 +227,3 @@ Issue: #<number>
 - ❌ Type definitions (TypeScript handles this)
 - ❌ External library behavior
 - ❌ Private implementation details (test through public API)
-
