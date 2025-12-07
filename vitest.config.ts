@@ -14,9 +14,11 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@monorepo/core': resolve(__dirname, 'packages/core/src'),
-      '@monorepo/utils': resolve(__dirname, 'packages/utils/src'),
-      '@monorepo/feature-a': resolve(__dirname, 'packages/feature-a/src'),
+      '@doc-agent/core': resolve(__dirname, 'packages/core/src'),
+      '@doc-agent/extract': resolve(__dirname, 'packages/extract/src'),
+      '@doc-agent/storage': resolve(__dirname, 'packages/storage/src'),
+      '@doc-agent/vector-store': resolve(__dirname, 'packages/vector-store/src'),
+      '@doc-agent/cli': resolve(__dirname, 'packages/cli/src'),
     },
   },
 });
