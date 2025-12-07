@@ -1,15 +1,9 @@
 #!/usr/bin/env node
-import { exec } from 'node:child_process';
-import { resolve } from 'node:path';
-import { promisify } from 'node:util';
-import type { Config } from '@doc-agent/core';
-import { extractDocument } from '@doc-agent/extract';
-import { storage } from '@doc-agent/storage';
 import chalk from 'chalk';
 import { Command } from 'commander';
-import ora from 'ora';
-
-const execAsync = promisify(exec);
+import { render } from 'ink';
+import React from 'react';
+import { ExtractApp } from './components/ExtractApp';
 
 const program = new Command();
 
@@ -18,31 +12,6 @@ program
   .alias('doc-agent')
   .description('Document extraction and semantic search CLI')
   .version('0.1.0');
-
-async function ensureOllamaModel(model: string) {
-  const spinner = ora(`Checking for Ollama model: ${model}...`).start();
-  try {
-    const response = await fetch('http://localhost:11434/api/tags');
-    if (!response.ok) {
-      throw new Error('Ollama is not running. Please start Ollama first.');
-    }
-    const data = (await response.json()) as { models: { name: string }[] };
-    const modelExists = data.models.some((m) => m.name.includes(model));
-
-    if (!modelExists) {
-      spinner.text = `Pulling Ollama model: ${model} (this may take a while)...`;
-      // Use exec to pull so we can potentially see output or just wait
-      // Using the API to pull would be better for progress, but for now CLI is robust
-      await execAsync(`ollama pull ${model}`);
-      spinner.succeed(`Model ${model} ready.`);
-    } else {
-      spinner.succeed(`Model ${model} found.`);
-    }
-  } catch (error) {
-    spinner.fail('Failed to check/pull Ollama model.');
-    throw error;
-  }
-}
 
 program
   .command('extract <file>')
@@ -55,36 +24,22 @@ program
   )
   .option('-d, --dry-run', 'Print JSON only, do not save to database', false)
   .action(async (file: string, options) => {
-    try {
-      if (options.provider === 'ollama') {
-        await ensureOllamaModel(options.model);
-      }
+    const { waitUntilExit } = render(
+      React.createElement(ExtractApp, {
+        file,
+        provider: options.provider,
+        model: options.model,
+        dryRun: options.dryRun,
+        onComplete: () => {
+          // Normal exit
+        },
+        onError: () => {
+          process.exitCode = 1;
+        },
+      })
+    );
 
-      const spinner = ora('Extracting document data...').start();
-
-      const config: Config = {
-        aiProvider: options.provider,
-        geminiApiKey: process.env.GEMINI_API_KEY,
-        openaiApiKey: process.env.OPENAI_API_KEY,
-        ollamaModel: options.model,
-      };
-
-      const result = await extractDocument(file, config);
-
-      if (options.dryRun) {
-        spinner.succeed(chalk.green('Extraction complete (dry run)'));
-      } else {
-        const absolutePath = resolve(file);
-        await storage.saveDocument(result, absolutePath);
-        spinner.succeed(chalk.green(`Saved: ${result.filename} (ID: ${result.id})`));
-      }
-
-      console.log(JSON.stringify(result, null, 2));
-    } catch (error) {
-      console.error(chalk.red('\nExtraction failed:'));
-      console.error((error as Error).message);
-      process.exit(1);
-    }
+    await waitUntilExit();
   });
 
 program
