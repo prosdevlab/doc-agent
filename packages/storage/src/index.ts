@@ -1,7 +1,7 @@
+import type { DocumentData } from '@doc-agent/core';
+import { eq } from 'drizzle-orm';
 import { createDb, type DbClient } from './db.js';
 import { documents, type NewDocument } from './schema.js';
-import { eq } from 'drizzle-orm';
-import type { DocumentData } from '@doc-agent/core';
 
 export class DocumentRepository {
   private db: DbClient;
@@ -16,30 +16,32 @@ export class DocumentRepository {
       path: filePath,
       status: 'pending',
       data: docData,
-      createdAt: new Date()
+      createdAt: new Date(),
     };
 
     // Upsert logic: if id exists, update data
-    await this.db.insert(documents).values(newDoc)
+    await this.db
+      .insert(documents)
+      .values(newDoc)
       .onConflictDoUpdate({
         target: documents.id,
         set: {
           data: docData,
           path: filePath,
-          status: 'pending' // Reset status on update so it gets re-indexed
-        }
+          status: 'pending', // Reset status on update so it gets re-indexed
+        },
       });
   }
 
   async getDocument(id: string) {
     return this.db.query.documents.findFirst({
-      where: eq(documents.id, id)
+      where: eq(documents.id, id),
     });
   }
 
   async listDocuments() {
     return this.db.query.documents.findMany({
-      orderBy: (docs, { desc }) => [desc(docs.createdAt)]
+      orderBy: (docs, { desc }) => [desc(docs.createdAt)],
     });
   }
 }
