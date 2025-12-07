@@ -206,6 +206,64 @@ Issue: #<number>
 - **Breaking Changes**: API changes
 - **Known Limitations**: What doesn't work yet
 
+## Commit Structure Preference
+
+### Atomic Commits (Always)
+
+**Every commit should be atomic:**
+- ✅ Complete logical unit of work
+- ✅ Can be reviewed independently
+- ✅ Can be reverted without breaking things
+- ✅ Tests pass at each commit
+- ✅ Working state maintained
+
+**Commit frequently, but keep commits atomic.**
+
+### Single Commit for Cohesive Features (Default)
+
+**For cohesive features, use a single atomic commit:**
+
+```
+feat(scope): implement feature with tests
+
+- Implementation details
+- Tests included
+- All related changes together
+```
+
+**When to use:**
+- ✅ New features/modules (e.g., new package)
+- ✅ Cohesive changes (< 1000 lines)
+- ✅ Implementation + tests belong together
+- ✅ Single logical unit of work
+
+**Rationale:**
+- Easier to review as one unit
+- Tests validate implementation immediately
+- Cleaner git history
+- Simpler to revert if needed
+
+### Multiple Commits (When Appropriate)
+
+**Split into multiple atomic commits when:**
+- 🔀 Multiple unrelated concerns (e.g., DB + API + UI)
+- 🔀 Large features (1000+ lines) that benefit from incremental review
+- 🔀 Risky changes needing staged rollout
+- 🔀 Tests require significant refactoring separate from implementation
+
+**Example split:**
+```
+feat(module): implement core functionality
+feat(module): add comprehensive test suite
+```
+
+**Avoid splitting for:**
+- ❌ Small cohesive features
+- ❌ Implementation + tests (they belong together)
+- ❌ Artificial separation (e.g., "code" vs "tests")
+
+**Key Principle:** Atomic ≠ Small. Atomic = Complete logical unit. A cohesive feature is one atomic unit.
+
 ## Testing Standards
 
 ### Coverage Goals
