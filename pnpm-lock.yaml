@@ -117,6 +117,9 @@ importers:
       '@google/generative-ai':
         specifier: ^0.24.1
         version: 0.24.1
+      '@lytics/kero':
+        specifier: ^1.0.0
+        version: 1.0.0
       pdf-to-img:
         specifier: ^5.0.0
         version: 5.0.0
@@ -2684,7 +2687,6 @@ packages:
 
   vectordb@0.21.2:
     resolution: {integrity: sha512-5tiwUq0jDtfIpcr7NY+kNCTecHCzSq0AqQtMzJphH7z6H6gfrw9t5/Aoy5/QnS0uAWIgqvCbE5qneQOFGxE+Og==}
-    cpu: [x64, arm64]
     os: [darwin, linux, win32]
     deprecated: Use @lancedb/lancedb instead.
     peerDependencies:
