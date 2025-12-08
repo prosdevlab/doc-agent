@@ -1,134 +1,132 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ocrImages } from '../ocr';
 
-// Mock tesseract.js to avoid worker issues in tests
+// Mock tesseract.js
 vi.mock('tesseract.js', () => ({
   default: {
-    recognize: vi.fn().mockResolvedValue({
-      data: {
-        text: 'Mocked OCR text\nTaqueria 10/10\n$5.99\n$4.49',
-      },
+    recognize: vi.fn(),
+  },
+}));
+
+// Mock kero
+vi.mock('@lytics/kero', () => ({
+  default: {
+    createLogger: () => ({
+      debug: vi.fn(),
+      error: vi.fn(),
     }),
   },
 }));
 
-describe('OCR Processing', () => {
-  // Skip if running in CI without the example file
-  const examplePath = resolve(__dirname, '../../../../examples/tacqueria-receipt.pdf');
+import Tesseract from 'tesseract.js';
 
-  it('should extract text from PDF using OCR', async () => {
-    // Import dynamically to avoid issues with tesseract worker
-    const { extractDocument } = await import('../index');
+describe('ocrImages', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
-    // Check if example file exists
-    let fileExists = false;
-    try {
-      readFileSync(examplePath);
-      fileExists = true;
-    } catch {
-      fileExists = false;
-    }
+  it('should return empty string for empty images array', async () => {
+    const result = await ocrImages([]);
+    expect(result).toBe('');
+  });
 
-    if (!fileExists) {
-      console.log('Skipping OCR test - example file not found');
-      return;
-    }
+  it('should process single image and return text', async () => {
+    const mockRecognize = vi.mocked(Tesseract.recognize);
+    mockRecognize.mockResolvedValueOnce({
+      data: { text: 'Hello World' },
+    } as Tesseract.RecognizeResult);
 
-    // Mock the Ollama API to return a simple response
-    const mockFetch = globalThis.fetch;
-    globalThis.fetch = async (url: string | URL | Request) => {
-      const urlStr = typeof url === 'string' ? url : url.toString();
+    const imageBuffer = Buffer.from('fake-image-data');
+    const result = await ocrImages([imageBuffer]);
 
-      if (urlStr.includes('localhost:11434')) {
-        return {
-          ok: true,
-          json: async () => ({
-            response: JSON.stringify({
-              type: 'receipt',
-              vendor: 'Taqueria 10/10',
-              amount: 22.4,
-              items: [{ description: 'Test Item', total: 5.99 }],
-            }),
-          }),
-          body: null,
-        } as Response;
+    expect(result).toBe('--- Page 1 ---\nHello World');
+    expect(mockRecognize).toHaveBeenCalledWith(imageBuffer, 'eng', expect.any(Object));
+  });
+
+  it('should process multiple images in parallel', async () => {
+    const mockRecognize = vi.mocked(Tesseract.recognize);
+    mockRecognize
+      .mockResolvedValueOnce({ data: { text: 'Page 1 content' } } as Tesseract.RecognizeResult)
+      .mockResolvedValueOnce({ data: { text: 'Page 2 content' } } as Tesseract.RecognizeResult)
+      .mockResolvedValueOnce({ data: { text: 'Page 3 content' } } as Tesseract.RecognizeResult);
+
+    const images = [Buffer.from('image1'), Buffer.from('image2'), Buffer.from('image3')];
+    const result = await ocrImages(images);
+
+    expect(result).toContain('--- Page 1 ---');
+    expect(result).toContain('--- Page 2 ---');
+    expect(result).toContain('--- Page 3 ---');
+    expect(mockRecognize).toHaveBeenCalledTimes(3);
+  });
+
+  it('should filter out empty pages', async () => {
+    const mockRecognize = vi.mocked(Tesseract.recognize);
+    mockRecognize
+      .mockResolvedValueOnce({ data: { text: 'Has content' } } as Tesseract.RecognizeResult)
+      .mockResolvedValueOnce({ data: { text: '   ' } } as Tesseract.RecognizeResult); // Whitespace only
+
+    const images = [Buffer.from('image1'), Buffer.from('image2')];
+    const result = await ocrImages(images);
+
+    expect(result).toBe('--- Page 1 ---\nHas content');
+    expect(result).not.toContain('Page 2');
+  });
+
+  it('should call progress callback during recognition', async () => {
+    const mockRecognize = vi.mocked(Tesseract.recognize);
+    let capturedLogger: ((m: { status: string; progress: number }) => void) | undefined;
+
+    mockRecognize.mockImplementation((_image, _lang, options) => {
+      capturedLogger = options?.logger as (m: { status: string; progress: number }) => void;
+      // Simulate progress callbacks
+      if (capturedLogger) {
+        capturedLogger({ status: 'recognizing text', progress: 0.5 });
+        capturedLogger({ status: 'recognizing text', progress: 1.0 });
       }
-      return mockFetch(url as RequestInfo, undefined);
-    };
+      return Promise.resolve({ data: { text: 'Result' } } as Tesseract.RecognizeResult);
+    });
 
-    try {
-      const result = await extractDocument(examplePath, {
-        aiProvider: 'ollama',
-        ollamaModel: 'llama3.2-vision',
-      });
+    const progressCallback = vi.fn();
+    const images = [Buffer.from('image1')];
 
-      // Verify extraction completed
-      expect(result).toBeDefined();
-      expect(result.id).toBeDefined();
-      expect(result.filename).toBe('tacqueria-receipt.pdf');
-    } finally {
-      globalThis.fetch = mockFetch;
-    }
+    await ocrImages(images, progressCallback);
+
+    expect(progressCallback).toHaveBeenCalledWith(1, 1, 0.5, 'recognizing text');
+    expect(progressCallback).toHaveBeenCalledWith(1, 1, 1.0, 'recognizing text');
   });
 
-  it('should handle OCR errors gracefully', async () => {
-    const { extractDocument } = await import('../index');
+  it('should handle OCR errors gracefully for individual pages', async () => {
+    const mockRecognize = vi.mocked(Tesseract.recognize);
+    mockRecognize
+      .mockResolvedValueOnce({ data: { text: 'Good page' } } as Tesseract.RecognizeResult)
+      .mockRejectedValueOnce(new Error('OCR failed'));
 
-    // Create a mock that simulates OCR failure by using invalid image data
-    const mockFetch = globalThis.fetch;
-    globalThis.fetch = async (url: string | URL | Request) => {
-      const urlStr = typeof url === 'string' ? url : url.toString();
+    const images = [Buffer.from('image1'), Buffer.from('image2')];
+    const result = await ocrImages(images);
 
-      if (urlStr.includes('localhost:11434')) {
-        return {
-          ok: true,
-          json: async () => ({
-            response: JSON.stringify({
-              type: 'receipt',
-              vendor: 'Test',
-              amount: 10,
-            }),
-          }),
-          body: null,
-        } as Response;
+    // Should still return the successful page
+    expect(result).toBe('--- Page 1 ---\nGood page');
+  });
+
+  it('should ignore non-recognizing status in progress callback', async () => {
+    const mockRecognize = vi.mocked(Tesseract.recognize);
+
+    mockRecognize.mockImplementation((_image, _lang, options) => {
+      const logger = options?.logger as
+        | ((m: { status: string; progress: number }) => void)
+        | undefined;
+      if (logger) {
+        logger({ status: 'loading tesseract core', progress: 0.5 }); // Should be ignored
+        logger({ status: 'recognizing text', progress: 1.0 }); // Should be called
       }
-      return mockFetch(url as RequestInfo, undefined);
-    };
+      return Promise.resolve({ data: { text: 'Result' } } as Tesseract.RecognizeResult);
+    });
 
-    try {
-      // This should not throw even if OCR fails internally
-      // The extraction should proceed with whatever data is available
-      const result = await extractDocument(examplePath, {
-        aiProvider: 'ollama',
-        ollamaModel: 'llama3.2-vision',
-      });
+    const progressCallback = vi.fn();
+    await ocrImages([Buffer.from('image1')], progressCallback);
 
-      expect(result).toBeDefined();
-    } finally {
-      globalThis.fetch = mockFetch;
-    }
-  });
-});
-
-describe('getMimeType', () => {
-  it('should detect PDF mime type', async () => {
-    const { getMimeType } = await import('../index');
-    expect(getMimeType('test.pdf')).toBe('application/pdf');
-    expect(getMimeType('TEST.PDF')).toBe('application/pdf');
-  });
-
-  it('should detect image mime types', async () => {
-    const { getMimeType } = await import('../index');
-    expect(getMimeType('test.png')).toBe('image/png');
-    expect(getMimeType('test.jpg')).toBe('image/jpeg');
-    expect(getMimeType('test.jpeg')).toBe('image/jpeg');
-    expect(getMimeType('test.gif')).toBe('image/gif');
-    expect(getMimeType('test.webp')).toBe('image/webp');
-  });
-
-  it('should default to PDF for unknown extensions', async () => {
-    const { getMimeType } = await import('../index');
-    expect(getMimeType('test.unknown')).toBe('application/pdf');
+    // Only called for 'recognizing text' status
+    expect(progressCallback).toHaveBeenCalledTimes(1);
+    expect(progressCallback).toHaveBeenCalledWith(1, 1, 1.0, 'recognizing text');
   });
 });

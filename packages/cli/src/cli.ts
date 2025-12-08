@@ -2,9 +2,7 @@
 import { resolve } from 'node:path';
 import chalk from 'chalk';
 import { Command } from 'commander';
-import { render } from 'ink';
-import React from 'react';
-import { ExtractApp } from './components/ExtractApp';
+import { runExtract } from './commands/extract';
 
 // Resolve paths relative to where user ran the command
 // INIT_CWD is set by pnpm to original working directory
@@ -38,22 +36,11 @@ program
     };
     const model = options.model || defaultModels[options.provider] || 'llama3.2-vision';
 
-    const { waitUntilExit } = render(
-      React.createElement(ExtractApp, {
-        file: absolutePath,
-        provider: options.provider,
-        model,
-        dryRun: options.dryRun,
-        onComplete: () => {
-          // Normal exit
-        },
-        onError: () => {
-          process.exitCode = 1;
-        },
-      })
-    );
-
-    await waitUntilExit();
+    await runExtract(absolutePath, {
+      provider: options.provider,
+      model,
+      dryRun: options.dryRun,
+    });
   });
 
 program

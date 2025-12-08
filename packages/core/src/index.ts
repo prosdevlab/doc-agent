@@ -6,7 +6,8 @@ export interface DocumentData {
   extractedAt: Date;
   vendor?: string;
   amount?: number;
-  date?: string;
+  date?: string; // Normalized ISO date (YYYY-MM-DD)
+  dateRaw?: string; // Original date from document
   items?: LineItem[];
   rawText?: string;
 }

@@ -14,10 +14,10 @@ export default defineConfig({
         '**/dist/**',
         '**/*.d.ts',
         '**/test/**',
-        '**/contexts/index.ts', // Barrel file
-        '**/hooks/index.ts', // Barrel file
-        '**/services/index.ts', // Barrel file
-        '**/components/index.ts', // Barrel file
+        // Barrel exports (re-export only, no logic)
+        '**/providers/index.ts',
+        '**/commands/index.ts',
+        'packages/extract/src/index.ts',
       ],
     },
   },
