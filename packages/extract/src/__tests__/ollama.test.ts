@@ -2,6 +2,15 @@ import type { Config } from '@doc-agent/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { extractDocument } from '../index';
 
+// Mock tesseract.js to avoid worker issues in tests
+vi.mock('tesseract.js', () => ({
+  default: {
+    recognize: vi.fn().mockResolvedValue({
+      data: { text: 'Mocked OCR text' },
+    }),
+  },
+}));
+
 // Mock fetch globally
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
@@ -278,7 +287,8 @@ describe('Ollama Extraction', () => {
     await extractDocument(testFile, config);
 
     const callBody = JSON.parse(mockFetch.mock.calls[0][1].body as string);
-    expect(callBody.prompt).toContain('image'); // Should detect image type
+    // With OCR enabled, prompt now includes OCR text
+    expect(callBody.prompt).toContain('OCR Text'); // OCR is applied to images too
 
     fs.unlinkSync(testFile);
   });
