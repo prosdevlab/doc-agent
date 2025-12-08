@@ -65,7 +65,9 @@ export async function extractWithOllama(
       });
 
       // OCR all pages in parallel for text reference
-      emitLog(onStream, 'info', `Running OCR on ${pages.length} page(s)`, { pageCount: pages.length });
+      emitLog(onStream, 'info', `Running OCR on ${pages.length} page(s)`, {
+        pageCount: pages.length,
+      });
       if (onStream) {
         onStream({ type: 'prompt', content: `Running OCR on ${pages.length} page(s)...` });
       }
@@ -221,8 +223,8 @@ General rules:
       type: (parsed as Record<string, unknown>).type,
       vendor: (parsed as Record<string, unknown>).vendor,
       amount: (parsed as Record<string, unknown>).amount,
-      itemCount: Array.isArray((parsed as Record<string, unknown>).items) 
-        ? ((parsed as Record<string, unknown>).items as unknown[]).length 
+      itemCount: Array.isArray((parsed as Record<string, unknown>).items)
+        ? ((parsed as Record<string, unknown>).items as unknown[]).length
         : 0,
     });
 

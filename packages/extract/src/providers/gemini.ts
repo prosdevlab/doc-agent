@@ -48,4 +48,3 @@ Only respond with valid JSON, no markdown formatting.`;
     ...extracted,
   };
 }
-

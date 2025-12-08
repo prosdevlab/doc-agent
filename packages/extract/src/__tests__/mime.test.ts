@@ -37,4 +37,3 @@ describe('getMimeType', () => {
     expect(getMimeType('image.backup.png')).toBe('image/png');
   });
 });
-

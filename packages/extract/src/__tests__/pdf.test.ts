@@ -25,36 +25,39 @@ describe('pdfToImages', () => {
 
   it('should convert PDF to array of image buffers', async () => {
     const mockPdf = vi.mocked(pdf);
-    const mockPages = [
-      new Uint8Array([1, 2, 3]),
-      new Uint8Array([4, 5, 6]),
-    ];
+    const mockPages = [Buffer.from([1, 2, 3]), Buffer.from([4, 5, 6])];
 
-    // Create async iterator
+    // Create mock document with required properties
     mockPdf.mockResolvedValueOnce({
+      length: mockPages.length,
+      metadata: {} as never,
+      getPage: vi.fn(),
       [Symbol.asyncIterator]: async function* () {
         for (const page of mockPages) {
           yield page;
         }
       },
-    } as AsyncIterable<Uint8Array>);
+    });
 
     const result = await pdfToImages('/path/to/test.pdf');
 
     expect(result).toHaveLength(2);
-    expect(result![0]).toBeInstanceOf(Buffer);
-    expect(result![1]).toBeInstanceOf(Buffer);
-    expect(mockPdf).toHaveBeenCalledWith('/path/to/test.pdf', { scale: 2 });
+    expect(result?.[0]).toBeInstanceOf(Buffer);
+    expect(result?.[1]).toBeInstanceOf(Buffer);
+    expect(mockPdf).toHaveBeenCalledWith('/path/to/test.pdf', { scale: 3 });
   });
 
   it('should return null for empty PDF', async () => {
     const mockPdf = vi.mocked(pdf);
 
     mockPdf.mockResolvedValueOnce({
+      length: 0,
+      metadata: {} as never,
+      getPage: vi.fn(),
       [Symbol.asyncIterator]: async function* () {
         // No pages
       },
-    } as AsyncIterable<Uint8Array>);
+    });
 
     const result = await pdfToImages('/path/to/empty.pdf');
 
@@ -72,18 +75,20 @@ describe('pdfToImages', () => {
 
   it('should handle single page PDF', async () => {
     const mockPdf = vi.mocked(pdf);
-    const mockPage = new Uint8Array([1, 2, 3, 4, 5]);
+    const mockPage = Buffer.from([1, 2, 3, 4, 5]);
 
     mockPdf.mockResolvedValueOnce({
+      length: 1,
+      metadata: {} as never,
+      getPage: vi.fn(),
       [Symbol.asyncIterator]: async function* () {
         yield mockPage;
       },
-    } as AsyncIterable<Uint8Array>);
+    });
 
     const result = await pdfToImages('/path/to/single-page.pdf');
 
     expect(result).toHaveLength(1);
-    expect(Buffer.from(result![0])).toEqual(Buffer.from(mockPage));
+    expect(result?.[0]).toEqual(mockPage);
   });
 });
-

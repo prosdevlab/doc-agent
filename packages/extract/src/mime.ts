@@ -20,4 +20,3 @@ export function getMimeType(filePath: string): string {
   const ext = extname(filePath).toLowerCase();
   return MIME_TYPES[ext] || 'application/pdf';
 }
-

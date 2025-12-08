@@ -50,11 +50,7 @@ describe('ocrImages', () => {
       .mockResolvedValueOnce({ data: { text: 'Page 2 content' } } as Tesseract.RecognizeResult)
       .mockResolvedValueOnce({ data: { text: 'Page 3 content' } } as Tesseract.RecognizeResult);
 
-    const images = [
-      Buffer.from('image1'),
-      Buffer.from('image2'),
-      Buffer.from('image3'),
-    ];
+    const images = [Buffer.from('image1'), Buffer.from('image2'), Buffer.from('image3')];
     const result = await ocrImages(images);
 
     expect(result).toContain('--- Page 1 ---');
@@ -116,7 +112,9 @@ describe('ocrImages', () => {
     const mockRecognize = vi.mocked(Tesseract.recognize);
 
     mockRecognize.mockImplementation((_image, _lang, options) => {
-      const logger = options?.logger as ((m: { status: string; progress: number }) => void) | undefined;
+      const logger = options?.logger as
+        | ((m: { status: string; progress: number }) => void)
+        | undefined;
       if (logger) {
         logger({ status: 'loading tesseract core', progress: 0.5 }); // Should be ignored
         logger({ status: 'recognizing text', progress: 1.0 }); // Should be called

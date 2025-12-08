@@ -6,15 +6,15 @@ describe('LineItemSchema', () => {
     const result = LineItemSchema.parse({
       description: 'Coffee',
       quantity: 2,
-      unitPrice: 3.50,
-      total: 7.00,
+      unitPrice: 3.5,
+      total: 7.0,
     });
 
     expect(result).toEqual({
       description: 'Coffee',
       quantity: 2,
-      unitPrice: 3.50,
-      total: 7.00,
+      unitPrice: 3.5,
+      total: 7.0,
     });
   });
 
@@ -27,14 +27,14 @@ describe('LineItemSchema', () => {
     });
 
     expect(result.quantity).toBe(2);
-    expect(result.unitPrice).toBe(3.50);
-    expect(result.total).toBe(7.00);
+    expect(result.unitPrice).toBe(3.5);
+    expect(result.total).toBe(7.0);
   });
 
   it('should normalize price to total', () => {
     const result = LineItemSchema.parse({
-      description: 'Item',
       price: 9.99, // Some models output "price" instead of "total"
+      name: 'Item',
     });
 
     expect(result.total).toBe(9.99);
@@ -43,11 +43,11 @@ describe('LineItemSchema', () => {
   it('should prefer total over price when both present', () => {
     const result = LineItemSchema.parse({
       description: 'Item',
-      total: 10.00,
-      price: 5.00,
+      total: 10.0,
+      price: 5.0,
     });
 
-    expect(result.total).toBe(10.00);
+    expect(result.total).toBe(10.0);
   });
 
   it('should handle missing optional fields', () => {
@@ -61,6 +61,42 @@ describe('LineItemSchema', () => {
       unitPrice: undefined,
       total: undefined,
     });
+  });
+
+  it('should normalize name to description', () => {
+    const result = LineItemSchema.parse({
+      name: 'Product Name',
+      price: 5.99,
+    });
+
+    expect(result.description).toBe('Product Name');
+  });
+
+  it('should normalize item to description', () => {
+    const result = LineItemSchema.parse({
+      item: 'Line Item',
+      amount: 10.0,
+    });
+
+    expect(result.description).toBe('Line Item');
+    expect(result.total).toBe(10.0);
+  });
+
+  it('should default description to Unknown item when missing', () => {
+    const result = LineItemSchema.parse({
+      total: 5.0,
+    });
+
+    expect(result.description).toBe('Unknown item');
+  });
+
+  it('should normalize qty to quantity', () => {
+    const result = LineItemSchema.parse({
+      description: 'Item',
+      qty: 3,
+    });
+
+    expect(result.quantity).toBe(3);
   });
 });
 
@@ -120,6 +156,15 @@ describe('DocumentDataSchema', () => {
     expect(result.amount).toBe(99.99);
   });
 
+  it('should preserve negative amounts (refunds/credits)', () => {
+    const result = DocumentDataSchema.parse({
+      type: 'receipt',
+      amount: -50.0,
+    });
+
+    expect(result.amount).toBe(-50.0);
+  });
+
   it('should parse all valid document types', () => {
     const types = ['invoice', 'receipt', 'bank_statement', 'other'] as const;
 
@@ -129,4 +174,3 @@ describe('DocumentDataSchema', () => {
     }
   });
 });
-

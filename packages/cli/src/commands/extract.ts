@@ -1,5 +1,5 @@
 import { resolve } from 'node:path';
-import type { Config, DocumentData } from '@doc-agent/core';
+import type { Config } from '@doc-agent/core';
 import { extractDocument, type StreamChunk } from '@doc-agent/extract';
 import { storage } from '@doc-agent/storage';
 import kero from '@lytics/kero';
@@ -11,14 +11,15 @@ import {
   checkOllamaInstalled,
   checkOllamaRunning,
   installOllama,
+  type PullProgress,
   pullModel,
   startOllama,
   waitForOllama,
-  type PullProgress,
 } from '../services/ollama';
 
 const logger = kero.createLogger({
-  level: (process.env.LOG_LEVEL as 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal') || 'info',
+  level:
+    (process.env.LOG_LEVEL as 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal') || 'info',
 });
 
 export interface ExtractOptions {
@@ -182,10 +183,10 @@ export async function runExtract(file: string, options: ExtractOptions): Promise
     const result = await extractDocument(absolutePath, config, {
       onStream: (chunk: StreamChunk) => {
         if (!chunk) return;
-        
+
         if (chunk.type === 'log') {
           // Log via kero - use simple string logging to avoid issues
-          const msg = `${chunk.message}${chunk.data ? ' ' + JSON.stringify(chunk.data) : ''}`;
+          const msg = `${chunk.message}${chunk.data ? ` ${JSON.stringify(chunk.data)}` : ''}`;
           if (chunk.level === 'error') {
             logger.error(msg);
           } else if (chunk.level === 'warn') {
@@ -195,7 +196,7 @@ export async function runExtract(file: string, options: ExtractOptions): Promise
           } else {
             logger.info(msg);
           }
-          
+
           // Update spinner for info logs
           if (chunk.level === 'info') {
             spinner.text = chunk.message;
@@ -219,7 +220,10 @@ export async function runExtract(file: string, options: ExtractOptions): Promise
     });
 
     spinner.succeed('Extraction complete');
-    logger.info({ type: result.type, itemCount: result.items?.length ?? 0 }, 'Extraction successful');
+    logger.info(
+      { type: result.type, itemCount: result.items?.length ?? 0 },
+      'Extraction successful'
+    );
 
     // Save to database (unless dry run)
     if (!dryRun) {
@@ -240,19 +244,17 @@ export async function runExtract(file: string, options: ExtractOptions): Promise
     // Print result
     console.log(chalk.gray('─'.repeat(40)));
     console.log(JSON.stringify(result, null, 2));
-
   } catch (error) {
     spinner.fail('Extraction failed');
     logger.error({ error: String(error) }, 'Extraction failed');
-    
+
     // Show the prompt for debugging if available
     if (lastPrompt) {
       console.log(chalk.gray('\n─── Last Prompt ───'));
       console.log(chalk.gray(lastPrompt.slice(-500))); // Last 500 chars
     }
-    
+
     console.error(chalk.red(String(error)));
     process.exitCode = 1;
   }
 }
-

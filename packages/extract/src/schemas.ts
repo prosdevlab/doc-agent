@@ -43,14 +43,14 @@ export const LineItemSchema = z
  */
 function normalizeDate(dateStr: string | null | undefined): string | undefined {
   if (!dateStr) return undefined;
-  
+
   // Try to parse common formats
   const parsed = new Date(dateStr);
   if (!Number.isNaN(parsed.getTime())) {
     // Valid date - format as YYYY-MM-DD
     return parsed.toISOString().split('T')[0];
   }
-  
+
   // Try MM/DD/YY format (common in US receipts)
   const mdyMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
   if (mdyMatch) {
@@ -61,7 +61,7 @@ function normalizeDate(dateStr: string | null | undefined): string | undefined {
       return normalized.toISOString().split('T')[0];
     }
   }
-  
+
   return undefined;
 }
 
@@ -98,4 +98,3 @@ export const DocumentDataSchema = z
   });
 
 export type ValidatedDocumentData = z.infer<typeof DocumentDataSchema>;
-

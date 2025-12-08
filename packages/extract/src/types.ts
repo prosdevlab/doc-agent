@@ -24,4 +24,3 @@ export type OcrProgressCallback = (
   progress: number,
   status: string
 ) => void;
-

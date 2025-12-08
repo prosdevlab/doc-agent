@@ -25,9 +25,9 @@ vi.mock('@lytics/kero', () => ({
 }));
 
 import type { Config } from '@doc-agent/core';
+import { extractDocument } from '../extract';
 import { extractWithGemini } from '../providers/gemini';
 import { extractWithOllama } from '../providers/ollama';
-import { extractDocument } from '../extract';
 
 describe('extractDocument', () => {
   beforeEach(() => {
@@ -127,10 +127,6 @@ describe('extractDocument', () => {
 
     // base64 of 'fake-file-content'
     const expectedBase64 = Buffer.from('fake-file-content').toString('base64');
-    expect(extractWithGemini).toHaveBeenCalledWith(
-      '/path/to/test.pdf',
-      expectedBase64,
-      config
-    );
+    expect(extractWithGemini).toHaveBeenCalledWith('/path/to/test.pdf', expectedBase64, config);
   });
 });
