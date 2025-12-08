@@ -9,7 +9,16 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      exclude: ['**/node_modules/**', '**/dist/**', '**/*.d.ts', '**/test/**'],
+      exclude: [
+        '**/node_modules/**',
+        '**/dist/**',
+        '**/*.d.ts',
+        '**/test/**',
+        '**/contexts/index.ts', // Barrel file
+        '**/hooks/index.ts', // Barrel file
+        '**/services/index.ts', // Barrel file
+        '**/components/index.ts', // Barrel file
+      ],
     },
   },
   resolve: {

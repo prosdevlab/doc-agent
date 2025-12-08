@@ -27,26 +27,51 @@ export function getDbPath(dataDir?: string): string {
 
 export function createDb(connectionString?: string) {
   const dbPath = connectionString || getDbPath();
-  const sqlite = new Database(dbPath);
-  const db = drizzle(sqlite, { schema });
+  let sqlite = new Database(dbPath);
+  let db = drizzle(sqlite, { schema });
 
-  // Lazy migration logic
-  runMigrations(db);
+  // Try migration, auto-reset on schema mismatch
+  const needsReset = runMigrations(db);
+
+  if (needsReset && !connectionString?.includes(':memory:')) {
+    // Close and delete the old database
+    sqlite.close();
+    fs.unlinkSync(dbPath);
+
+    // Recreate fresh
+    sqlite = new Database(dbPath);
+    db = drizzle(sqlite, { schema });
+    runMigrations(db);
+
+    logger.info('Database reset due to schema change.');
+  }
 
   return db;
 }
 
-export function runMigrations(db: ReturnType<typeof drizzle>, migrationsFolder?: string) {
+/** Run migrations. Returns true if database needs reset (schema mismatch). */
+export function runMigrations(db: ReturnType<typeof drizzle>, migrationsFolder?: string): boolean {
   const folder = migrationsFolder || path.join(__dirname, '../drizzle');
 
   // Check if migrations folder exists (dev mode vs prod)
-  if (fs.existsSync(folder)) {
-    try {
-      migrate(db, { migrationsFolder: folder });
-    } catch (error) {
-      logger.error(error instanceof Error ? error : new Error(String(error)), 'Migration failed');
-      // Don't crash, just warn. might be a locked DB or permission issue.
+  if (!fs.existsSync(folder)) {
+    return false;
+  }
+
+  try {
+    migrate(db, { migrationsFolder: folder });
+    return false;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+
+    // Schema mismatch - needs reset
+    if (errorMsg.includes('has no column named') || errorMsg.includes('already exists')) {
+      return true;
     }
+
+    // Other error - log but don't reset
+    logger.error(error instanceof Error ? error : new Error(errorMsg), 'Migration failed');
+    return false;
   }
 }
 

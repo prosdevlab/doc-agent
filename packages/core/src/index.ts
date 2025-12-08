@@ -27,6 +27,7 @@ export interface SearchResult {
 export interface Config {
   aiProvider: 'gemini' | 'openai' | 'ollama';
   geminiApiKey?: string;
+  geminiModel?: string;
   openaiApiKey?: string;
   ollamaModel?: string;
   dbPath?: string;

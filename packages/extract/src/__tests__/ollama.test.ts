@@ -66,32 +66,19 @@ describe('Ollama Extraction', () => {
     fs.unlinkSync(testFile);
   });
 
-  it('should retry once on Zod validation failure', async () => {
+  it('should coerce invalid type to "other"', async () => {
+    // Schema is lenient - invalid types become 'other'
     const invalidResponse = {
       response: JSON.stringify({
-        type: 'invalid_type', // Invalid type
+        type: 'invalid_type', // Invalid type - will be coerced to 'other'
         vendor: 'Test Company',
       }),
     };
 
-    const validResponse = {
-      response: JSON.stringify({
-        type: 'receipt',
-        vendor: 'Test Company',
-        amount: 50.0,
-      }),
-    };
-
-    // First call returns invalid data, second call returns valid data
-    mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => invalidResponse,
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => validResponse,
-      });
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => invalidResponse,
+    });
 
     const fs = await import('node:fs');
     const path = await import('node:path');
@@ -107,8 +94,48 @@ describe('Ollama Extraction', () => {
 
     const result = await extractDocument(testFile, config);
 
-    expect(result.type).toBe('receipt');
-    expect(mockFetch).toHaveBeenCalledTimes(2); // Should retry once
+    // Invalid type should be coerced to 'other'
+    expect(result.type).toBe('other');
+    expect(result.vendor).toBe('Test Company');
+    expect(mockFetch).toHaveBeenCalledTimes(1); // No retry needed
+
+    fs.unlinkSync(testFile);
+  });
+
+  it('should coerce string numbers to actual numbers', async () => {
+    // Schema coerces strings like "100.50" to numbers
+    const responseWithStrings = {
+      response: JSON.stringify({
+        type: 'receipt',
+        vendor: 'Test Store',
+        amount: '50.99', // String instead of number
+        items: [{ description: 'Item', total: '25.50' }],
+      }),
+    };
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => responseWithStrings,
+    });
+
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const os = await import('node:os');
+    const tmpDir = os.tmpdir();
+    const testFile = path.join(tmpDir, 'test-coerce.pdf');
+    fs.writeFileSync(testFile, Buffer.from('test pdf content'));
+
+    const config: Config = {
+      aiProvider: 'ollama',
+      ollamaModel: 'llama3.2-vision',
+    };
+
+    const result = await extractDocument(testFile, config);
+
+    expect(result.amount).toBe(50.99);
+    expect(typeof result.amount).toBe('number');
+    expect(result.items?.[0].total).toBe(25.5);
+    expect(typeof result.items?.[0].total).toBe('number');
 
     fs.unlinkSync(testFile);
   });
@@ -196,7 +223,7 @@ describe('Ollama Extraction', () => {
     fs.unlinkSync(testFile);
   });
 
-  it('should not retry on non-Zod errors', async () => {
+  it('should not retry on API errors', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 500,
@@ -256,29 +283,25 @@ describe('Ollama Extraction', () => {
     fs.unlinkSync(testFile);
   });
 
-  it('should handle retry exhaustion (Zod error persists)', async () => {
-    const invalidResponse = {
+  it('should handle missing type field gracefully', async () => {
+    // Schema defaults missing type to 'other'
+    const noTypeResponse = {
       response: JSON.stringify({
-        type: 'invalid_type', // Invalid type
+        vendor: 'Test Company',
+        amount: 100,
       }),
     };
 
-    // Both calls return invalid data
-    mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => invalidResponse,
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => invalidResponse,
-      });
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => noTypeResponse,
+    });
 
     const fs = await import('node:fs');
     const path = await import('node:path');
     const os = await import('node:os');
     const tmpDir = os.tmpdir();
-    const testFile = path.join(tmpDir, 'test-retry-exhausted.pdf');
+    const testFile = path.join(tmpDir, 'test-no-type.pdf');
     fs.writeFileSync(testFile, Buffer.from('test pdf content'));
 
     const config: Config = {
@@ -286,10 +309,11 @@ describe('Ollama Extraction', () => {
       ollamaModel: 'llama3.2-vision',
     };
 
-    await expect(extractDocument(testFile, config)).rejects.toThrow();
+    const result = await extractDocument(testFile, config);
 
-    // Should retry once, then fail
-    expect(mockFetch).toHaveBeenCalledTimes(2);
+    // Missing type should default to 'other'
+    expect(result.type).toBe('other');
+    expect(result.vendor).toBe('Test Company');
 
     fs.unlinkSync(testFile);
   });

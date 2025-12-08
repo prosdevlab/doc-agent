@@ -1,9 +1,17 @@
 #!/usr/bin/env node
+import { resolve } from 'node:path';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import { render } from 'ink';
 import React from 'react';
 import { ExtractApp } from './components/ExtractApp';
+
+// Resolve paths relative to where user ran the command
+// INIT_CWD is set by pnpm to original working directory
+const cwd = process.env.INIT_CWD || process.cwd();
+function resolvePath(filePath: string): string {
+  return resolve(cwd, filePath);
+}
 
 const program = new Command();
 
@@ -17,18 +25,24 @@ program
   .command('extract <file>')
   .description('Extract structured data from a document')
   .option('-p, --provider <provider>', 'AI provider (gemini|openai|ollama)', 'ollama')
-  .option(
-    '-m, --model <model>',
-    'Model to use (default: llama3.2-vision for ollama)',
-    'llama3.2-vision'
-  )
+  .option('-m, --model <model>', 'Model to use (ollama: llama3.2-vision, gemini: gemini-2.5-flash)')
   .option('-d, --dry-run', 'Print JSON only, do not save to database', false)
   .action(async (file: string, options) => {
+    const absolutePath = resolvePath(file);
+
+    // Set default model based on provider if not specified
+    const defaultModels: Record<string, string> = {
+      ollama: 'llama3.2-vision',
+      gemini: 'gemini-2.5-flash',
+      openai: 'gpt-4o',
+    };
+    const model = options.model || defaultModels[options.provider] || 'llama3.2-vision';
+
     const { waitUntilExit } = render(
       React.createElement(ExtractApp, {
-        file,
+        file: absolutePath,
         provider: options.provider,
-        model: options.model,
+        model,
         dryRun: options.dryRun,
         onComplete: () => {
           // Normal exit
