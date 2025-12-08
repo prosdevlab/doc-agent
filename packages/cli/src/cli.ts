@@ -1,15 +1,17 @@
 #!/usr/bin/env node
-import { exec } from 'node:child_process';
 import { resolve } from 'node:path';
-import { promisify } from 'node:util';
-import type { Config } from '@doc-agent/core';
-import { extractDocument } from '@doc-agent/extract';
-import { storage } from '@doc-agent/storage';
 import chalk from 'chalk';
 import { Command } from 'commander';
-import ora from 'ora';
+import { render } from 'ink';
+import React from 'react';
+import { ExtractApp } from './components/ExtractApp';
 
-const execAsync = promisify(exec);
+// Resolve paths relative to where user ran the command
+// INIT_CWD is set by pnpm to original working directory
+const cwd = process.env.INIT_CWD || process.cwd();
+function resolvePath(filePath: string): string {
+  return resolve(cwd, filePath);
+}
 
 const program = new Command();
 
@@ -19,72 +21,39 @@ program
   .description('Document extraction and semantic search CLI')
   .version('0.1.0');
 
-async function ensureOllamaModel(model: string) {
-  const spinner = ora(`Checking for Ollama model: ${model}...`).start();
-  try {
-    const response = await fetch('http://localhost:11434/api/tags');
-    if (!response.ok) {
-      throw new Error('Ollama is not running. Please start Ollama first.');
-    }
-    const data = (await response.json()) as { models: { name: string }[] };
-    const modelExists = data.models.some((m) => m.name.includes(model));
-
-    if (!modelExists) {
-      spinner.text = `Pulling Ollama model: ${model} (this may take a while)...`;
-      // Use exec to pull so we can potentially see output or just wait
-      // Using the API to pull would be better for progress, but for now CLI is robust
-      await execAsync(`ollama pull ${model}`);
-      spinner.succeed(`Model ${model} ready.`);
-    } else {
-      spinner.succeed(`Model ${model} found.`);
-    }
-  } catch (error) {
-    spinner.fail('Failed to check/pull Ollama model.');
-    throw error;
-  }
-}
-
 program
   .command('extract <file>')
   .description('Extract structured data from a document')
   .option('-p, --provider <provider>', 'AI provider (gemini|openai|ollama)', 'ollama')
-  .option(
-    '-m, --model <model>',
-    'Model to use (default: llama3.2-vision for ollama)',
-    'llama3.2-vision'
-  )
+  .option('-m, --model <model>', 'Model to use (ollama: llama3.2-vision, gemini: gemini-2.5-flash)')
   .option('-d, --dry-run', 'Print JSON only, do not save to database', false)
   .action(async (file: string, options) => {
-    try {
-      if (options.provider === 'ollama') {
-        await ensureOllamaModel(options.model);
-      }
+    const absolutePath = resolvePath(file);
 
-      const spinner = ora('Extracting document data...').start();
+    // Set default model based on provider if not specified
+    const defaultModels: Record<string, string> = {
+      ollama: 'llama3.2-vision',
+      gemini: 'gemini-2.5-flash',
+      openai: 'gpt-4o',
+    };
+    const model = options.model || defaultModels[options.provider] || 'llama3.2-vision';
 
-      const config: Config = {
-        aiProvider: options.provider,
-        geminiApiKey: process.env.GEMINI_API_KEY,
-        openaiApiKey: process.env.OPENAI_API_KEY,
-        ollamaModel: options.model,
-      };
+    const { waitUntilExit } = render(
+      React.createElement(ExtractApp, {
+        file: absolutePath,
+        provider: options.provider,
+        model,
+        dryRun: options.dryRun,
+        onComplete: () => {
+          // Normal exit
+        },
+        onError: () => {
+          process.exitCode = 1;
+        },
+      })
+    );
 
-      const result = await extractDocument(file, config);
-
-      if (options.dryRun) {
-        spinner.succeed(chalk.green('Extraction complete (dry run)'));
-      } else {
-        const absolutePath = resolve(file);
-        await storage.saveDocument(result, absolutePath);
-        spinner.succeed(chalk.green(`Saved: ${result.filename} (ID: ${result.id})`));
-      }
-
-      console.log(JSON.stringify(result, null, 2));
-    } catch (error) {
-      console.error(chalk.red('\nExtraction failed:'));
-      console.error((error as Error).message);
-      process.exit(1);
-    }
+    await waitUntilExit();
   });
 
 program
