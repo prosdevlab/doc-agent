@@ -13,12 +13,14 @@ This is the developer documentation for the **doc-agent** project.
 -   **Runtime**: Node.js >= 22 (LTS)
 -   **Package Manager**: pnpm (using workspaces)
 -   **Language**: TypeScript
--   **Build System**: Turborepo
+-   **Build System**: Turborepo + tsup
 -   **Linter/Formatter**: Biome
--   **Testing**: Vitest
--   **AI Providers**: Google Gemini (primary), OpenAI, Ollama
+-   **Testing**: Vitest + ink-testing-library
+-   **AI Providers**: Ollama (default, local), Google Gemini (cloud)
+-   **Database**: SQLite via better-sqlite3 + Drizzle ORM
 -   **Vector Database**: LanceDB (via `vectordb` package)
--   **CLI Framework**: Commander.js
+-   **CLI Framework**: Ink (React for CLIs) + Commander.js
+-   **OCR**: Tesseract.js (WASM-based, fully local)
 
 ## Repository Structure
 
@@ -60,7 +62,7 @@ See [WORKFLOW.md](./WORKFLOW.md) for the complete development process, including
 
 ### Working on the CLI
 
-The CLI is the main entry point (`packages/cli`).
+The CLI is the main entry point (`packages/cli`), built with **Ink** (React for CLIs).
 
 -   **Run CLI**: `pnpm --filter @doc-agent/cli dev ...` (or just `pnpm dev` from root)
 -   **Command Structure**:
@@ -68,11 +70,37 @@ The CLI is the main entry point (`packages/cli`).
     -   `doc mcp`: Start the MCP server.
     -   `doc search <query>`: (Coming soon) Search indexed documents.
 
+**CLI Architecture** (testable by design):
+```
+packages/cli/src/
+├── cli.ts              # Commander.js entry point
+├── components/         # Ink React components (UI)
+│   ├── ExtractApp.tsx  # Main extraction flow
+│   ├── OllamaStatus.tsx
+│   └── StreamingOutput.tsx
+├── hooks/              # React hooks (stateful logic)
+│   ├── useOllama.ts
+│   └── useExtraction.ts
+├── services/           # Pure functions (external interactions)
+│   └── ollama.ts       # Ollama install/start/pull
+├── contexts/           # React contexts (dependency injection)
+│   ├── OllamaContext.tsx
+│   └── ExtractionContext.tsx
+└── mcp/                # MCP server
+```
+
 ### Working on Core Logic
 
--   **Extraction**: Modify `packages/extract`. This handles communication with AI providers (Gemini, etc.) to parse documents.
--   **Storage**: Modify `packages/vector-store`. This manages the local vector database (LanceDB) for semantic search.
--   **Types**: Update `packages/core` for shared interfaces (e.g., `DocumentData`, `Config`).
+-   **Extraction** (`packages/extract`): Handles AI provider communication and document parsing.
+    -   Supports Ollama (local) and Gemini (cloud).
+    -   PDF-to-image conversion via `pdf-to-img`.
+    -   OCR preprocessing via `tesseract.js` for improved accuracy.
+    -   Zod schema validation for AI responses.
+-   **Storage** (`packages/storage`): SQLite persistence via Drizzle ORM.
+    -   Stores extracted document metadata and JSON data.
+    -   Auto-migrates schema on startup.
+-   **Vector Store** (`packages/vector-store`): LanceDB for semantic search (coming soon).
+-   **Types** (`packages/core`): Shared interfaces (`DocumentData`, `Config`).
 
 ### Build Process
 
