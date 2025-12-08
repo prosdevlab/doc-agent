@@ -3,6 +3,7 @@ import { extname } from 'node:path';
 import type { Config, DocumentData } from '@doc-agent/core';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { pdf } from 'pdf-to-img';
+import Tesseract from 'tesseract.js';
 import { z } from 'zod';
 
 // Zod schema for DocumentData validation (lenient to handle model variations)
@@ -61,22 +62,51 @@ export function getMimeType(filePath: string): string {
   return mimeTypes[ext] || 'application/pdf';
 }
 
-// Convert PDF to PNG image (first page) for vision models that don't support PDF
-// Returns null if conversion fails (invalid PDF, etc.)
-async function pdfToImage(filePath: string): Promise<string | null> {
+// Convert PDF to PNG images (all pages) for vision models that don't support PDF
+// Returns array of base64 images, or null if conversion fails
+async function pdfToImages(filePath: string): Promise<Buffer[] | null> {
   try {
     const document = await pdf(filePath, { scale: 2 });
+    const pages: Buffer[] = [];
 
-    // Get first page as PNG buffer
     for await (const page of document) {
-      // Return base64 of first page
-      return Buffer.from(page).toString('base64');
+      pages.push(Buffer.from(page));
     }
 
-    return null; // No pages
+    return pages.length > 0 ? pages : null;
   } catch {
-    // Invalid PDF or other error - return null to use original
+    // Invalid PDF or other error
     return null;
+  }
+}
+
+// OCR all images in parallel using tesseract.js
+// Returns concatenated text with page markers
+async function ocrImages(images: Buffer[]): Promise<string> {
+  if (images.length === 0) return '';
+
+  try {
+    // Process all pages in parallel
+    const results = await Promise.all(
+      images.map(async (image, index) => {
+        try {
+          const result = await Tesseract.recognize(image, 'eng', {
+            logger: () => {}, // Silent
+          });
+          return { page: index + 1, text: result.data.text };
+        } catch {
+          return { page: index + 1, text: '' };
+        }
+      })
+    );
+
+    // Concatenate with page markers
+    return results
+      .filter((r) => r.text.trim())
+      .map((r) => `--- Page ${r.page} ---\n${r.text.trim()}`)
+      .join('\n\n');
+  } catch {
+    return '';
   }
 }
 
@@ -164,14 +194,26 @@ async function extractWithOllama(
   const model = config.ollamaModel || 'llama3.2-vision';
   const mimeType = getMimeType(filePath);
 
-  // Ollama vision models don't support PDF - convert to image first
+  // Ollama vision models don't support PDF - convert to images first
   let imageBase64 = base64;
+  let ocrText = '';
+
   if (mimeType === 'application/pdf') {
-    const converted = await pdfToImage(filePath);
-    if (converted) {
-      imageBase64 = converted;
+    const pages = await pdfToImages(filePath);
+    if (pages && pages.length > 0) {
+      // Use first page for vision model
+      imageBase64 = pages[0].toString('base64');
+
+      // OCR all pages in parallel for text reference
+      if (onStream) {
+        onStream({ type: 'prompt', content: `Running OCR on ${pages.length} page(s)...` });
+      }
+      ocrText = await ocrImages(pages);
     }
-    // If conversion fails, try with original (will likely fail, but gives clearer error)
+  } else {
+    // For images, OCR the single image
+    const imageBuffer = Buffer.from(base64, 'base64');
+    ocrText = await ocrImages([imageBuffer]);
   }
 
   const systemPrompt = `Extract receipt/invoice data as JSON.
@@ -182,9 +224,14 @@ Schema:
 Rules:
 - amount = final total paid
 - items = only purchased items (not tax/fees/service charges)
-- date in YYYY-MM-DD format`;
+- date in YYYY-MM-DD format
+- Use the OCR text below as the primary source for text and numbers
+- The image is for layout context only`;
 
-  const userPrompt = `Extract structured data from this ${mimeType.includes('image') ? 'image' : 'document'}.`;
+  // Include OCR text in the user prompt if available
+  const userPrompt = ocrText
+    ? `OCR Text (use this for accurate text/numbers):\n${ocrText}\n\nExtract structured data from this document.`
+    : `Extract structured data from this ${mimeType.includes('image') ? 'image' : 'document'}.`;
 
   try {
     const shouldStream = !!onStream;

@@ -52,3 +52,6 @@ Thumbs.db
 
 # Others
 tmp/
+
+# Tesseract.js language data (downloaded at runtime)
+*.traineddata
